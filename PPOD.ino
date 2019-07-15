@@ -11,8 +11,8 @@
 #define temp_pin A0 //The light that turns on when it is powered up and remains on
 #define press_pin A1
 #define gps_status_pin A2 //blue, flashes every 10 seconds if fix, every second if not
-#define smart_status_pin A3 //yellow, flshes every 10 seconds if released
-#define sd_status_pin A4 //red, flashes every 10 seconds if logging, every second if not
+#define smart_status_pin A3 //red, flashes every 10 seconds if not released, every second after release
+#define sd_status_pin A4 //yellow, flashes every log cycle if logging, stays on if not logging
 
 File datalog;
 char filename[] = "SDPPOD00.csv"; //File name template
@@ -199,6 +199,7 @@ void logData(){
     datalog = SD.open(filename, FILE_WRITE);
     datalog.println(data);
     datalog.close();
+    digitalWrite(sd_status_pin, HIGH);
   }
 }
 
@@ -208,15 +209,15 @@ void updateStatus()
   {
     digitalWrite(gps_status_pin, LOW);
     digitalWrite(smart_status_pin, LOW);
-    digitalWrite(sd_status_pin, LOW);
+    if(SDactive)digitalWrite(sd_status_pin, LOW);
   }
   else
   {
     status_counter ++;
     if(status_counter > 10) status_counter = 1;
     if((fix && status_counter==10) || !fix) digitalWrite(gps_status_pin, HIGH);
-    if(released && status_counter==10) digitalWrite(smart_status_pin, HIGH);
-    if((SDactive && status_counter==10) || !SDactive) digitalWrite(sd_status_pin, HIGH);
+    if((!released && status_counter==10) || released) digitalWrite(smart_status_pin, HIGH);
+    if(!SDactive) digitalWrite(sd_status_pin, HIGH);
   }
   status_engaged = !status_engaged;
 }

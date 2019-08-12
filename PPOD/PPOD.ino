@@ -3,18 +3,15 @@
 #include <SoftwareSerial.h>
 #include <RelayXBee.h>
 #include <SD.h>
-#include <SPI.h>
-#include <Smart.h>
-#include <OneWire.h>
-#include <DallasTemperature.h>
+#include "src\Smart.h"
 
-//#define chipSelect 53 //use this for Mega board
+#define chipSelect 53
 #define smartPin 2
 #define onlight 7
-#define temp_pin 4
+#define temp_pin A0 //The light that turns on when it is powered up and remains on
 #define press_pin A1
 #define gps_status_pin A2 //blue, flashes every 10 seconds if fix, every second if not
-#define smart_status_pin A3 //red, flashes every 10 seconds if not released, every second after release
+#define smart_status_pin A3 //red, flashes every 10 seconds if not raeleased, every second after release
 #define sd_status_pin A4 //yellow, flashes every log cycle if logging, stays on if not logging
 #define GPS_serial Serial1
 #define XBee_serial Serial3
@@ -36,15 +33,10 @@ String rawGPS;
 short status_counter = 0;
 bool status_engaged = false;
 unsigned long int radioTime = 0;
-const int chipSelect = BUILTIN_SDCARD; //for Teensy only
 
-//SoftwareSerial XBee_serial = SoftwareSerial(6,7);
-//SoftwareSerial XBee_serialGPS = SoftwareSerial(2,3);
 RelayXBee xBee = RelayXBee(&XBee_serial, ID);
 UbloxGPS ublox(&GPS_serial);
 Smart smart = Smart(smartPin);
-OneWire oneWire(temp_pin);
-DallasTemperature digital_temp(&oneWire);
 
 void setup() {
   pinMode(gps_status_pin, OUTPUT);
@@ -52,23 +44,17 @@ void setup() {
   pinMode(sd_status_pin, OUTPUT);
   Serial.begin(9600);
   smart.initialize();
-  digital_temp.begin();
+  GPS_serial.begin(UBLOX_BAUD);
+  //gps.init();
+  Serial.println("GPS initialized");
+  //delay(50);
+  //gps.setAirborne();
+  //(gps.setAirborne()){Serial.println("Air mode successfully set");}
   pinMode(onlight, OUTPUT);
   XBee_serial.begin(XBEE_BAUD);
   xBee.init('A');
   Serial.println("Xbee initialized");
   pinMode(10,OUTPUT);
-  GPS_serial.begin(UBLOX_BAUD);
-  ublox.init();
-  delay(200);
-  Serial.println("GPS initialized");
-  byte i = 0;
-  while (i<50) {
-    i++;
-    if (ublox.setAirborne()) {
-      Serial.println("Air mode successfully set.");
-      break;}}
-  Serial.println("GPS configured");
   Serial.print("Initializing SD card...");
   pinMode(chipSelect,OUTPUT);
   if(!SD.begin(chipSelect)){
@@ -107,22 +93,21 @@ void setup() {
 }
 
 void loop() {
-  ublox.update();
-  if (millis()%1000 == 500) {
-    updateXbee();
-    logData();
-    updateStatus();
-    if (!released && ((millis()/60000.0 > cutTime) || (currentAlt >= cutAlt))) {
-       smart.release();
-       released = true;
-       XBee_serial.println("PPOD released on Timer");
-       if(SDactive) datalog.println("PPOD released on Timer");
-    }
-    if (released == true) {digitalWrite(onlight,HIGH);}
+  updateXbee();
+  logData();
+  updateStatus();
+  if (!released && ((millis()/60000.0 > cutTime)) || (currentAlt >= cutAlt)) {
+     smart.release();
+     released = true;
+     XBee_serial.println("PPOD released on Timer");
+     if(SDactive) datalog.println("PPOD released on Timer");
   }
-  if (millis()%1000 == 0) {
-    digitalWrite(onlight,LOW);
-    updateStatus();}
+  if (released == true) {digitalWrite(onlight,HIGH);}
+  
+  delay(500);
+  digitalWrite(onlight,LOW);
+  updateStatus();
+  delay(500);
 }
 
 void updateXbee(){
@@ -166,8 +151,9 @@ if (XBee_serial.available() > 0) {
     }}}
 
 float temperature(){
-  digital_temp.requestTemperatures();
-  float temp = digital_temp.getTempCByIndex(0);
+  float rawTemp = analogRead(temp_pin);
+  float tempV = rawTemp*(5.0/1024.0);
+  float temp = ((tempV-0.5)*100);
   return temp;
 }
 
@@ -180,22 +166,24 @@ float pressure(){
 
 void logData(){
 
+  ublox.update();
+
   short seconds = (millis()/1000)%60;
   short minutes = (millis()/60000)%60;
   short hours = (millis()/1000)/3600;
   
-  data = String(ublox.getHour()-5) + ":" + String(ublox.getMinute()) + ":" + String(ublox.getSecond()) + ", "
-                + String(ublox.getLat(), 4) + ", " + String(ublox.getLon(), 4) + ", " + String(ublox.getAlt_feet(), 4) +  ", "
+ data = String(ublox.getHour()) + ":" + String(ublox.getMinute()) + ":" + String(ublox.getSecond()) + ", "
+                + String(ublox.getLat(), 4) + ", " + String(ublox.getLon(), 4) + ", " + String(ublox.getAlt_feet(), 4) +  ", " 
                 + String(temperature()) + ", " + String(pressure()) + ", " + String(released) + ", " + String(hours) + ":" + String(minutes) + ":"
                 + String(seconds);
               
-  /*if (gps.getFixAge() > 2000){
+  if (ublox.getFixAge() > 2000){
     fix = false;
     data += ", no fix";}
   else{
     fix = true;
     data+= ", fix";}
-    */
+    
   Serial.println(data);
   if(radioTime + 10000 < millis()){
     xBee.send(data);

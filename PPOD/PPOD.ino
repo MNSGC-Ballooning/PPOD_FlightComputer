@@ -33,6 +33,7 @@ String rawGPS;
 short status_counter = 0;
 bool status_engaged = false;
 unsigned long int radioTime = 0;
+unsigned long int timer = 0;
 
 RelayXBee xBee = RelayXBee(&XBee_serial, ID);
 UbloxGPS ublox(&GPS_serial);
@@ -82,7 +83,7 @@ void setup() {
   }
   digitalWrite(onlight, LOW);
 
-  String header = "GPS Time,Lat,Lon,Alt (m), temp(C), pressure(PSI), released? , time since bootup ";
+  String header = "GPS Time,Lat,Lon,Alt (m), temp(C), pressure(PSI), released? , time since bootup (hr:min:sec) , seconds since bootup";
   //String header = "GPS Time,Lat,Lon,Alt (m),# Sats, temp(C), seconds since bootup ";  //old version
   Serial.println(header);
   if(SDactive) {
@@ -165,9 +166,13 @@ float pressure(){
 }
 
 void logData(){
+  
+  ublox.update(); // wont work unless this guy is outside the millis() function. GPS will show no fix
+  
+  if(millis() - 1500 > timer){
 
-  ublox.update();
-
+  timer = millis();
+  
   short seconds = (millis()/1000)%60;
   short minutes = (millis()/60000)%60;
   short hours = (millis()/1000)/3600;
@@ -175,7 +180,7 @@ void logData(){
  data = String(ublox.getHour()) + ":" + String(ublox.getMinute()) + ":" + String(ublox.getSecond()) + ", "
                 + String(ublox.getLat(), 4) + ", " + String(ublox.getLon(), 4) + ", " + String(ublox.getAlt_feet(), 4) +  ", " 
                 + String(temperature()) + ", " + String(pressure()) + ", " + String(released) + ", " + String(hours) + ":" + String(minutes) + ":"
-                + String(seconds);
+                + String(seconds) + "," + String(millis()/1000);
               
   if (ublox.getFixAge() > 2000){
     fix = false;
@@ -194,7 +199,7 @@ void logData(){
     datalog.println(data);
     datalog.close();
     digitalWrite(sd_status_pin, HIGH);
-  }
+  }}
 }
 
 void updateStatus()

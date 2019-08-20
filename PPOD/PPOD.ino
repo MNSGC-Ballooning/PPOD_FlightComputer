@@ -28,7 +28,7 @@ bool attempt = false;
 bool released = false;
 String ID = "POD";
 String command;
-float cutTime = 70.0; //Time in minutes, 70,000 feet approx.
+float cutTime = 1.0; //Time in minutes, 70,000 feet approx.
 float cutAlt = 18288; //Alt in meters
 float currentAlt = 0;
 String rawGPS;
@@ -130,22 +130,33 @@ void updateXbee(){
   if (XBee_serial.available() > 0) {
     command = xBee.receive();
     if (command.startsWith("T")) {
-      xBee.send(String(cutTime - millis()/60000));
-    }
+      xBee.send(String(cutTime - millis()/60000) + "minutes left");}
     else if (command.startsWith("+")) {
       command.remove(0,1);
       float addtime = command.toFloat(); 
       cutTime = cutTime + addtime;
-      xBee.send(String(addtime) + " Minutes added." + " New Time Left: ," + String(cutTime - millis()/60000));
-      if(SDactive) logData(String(addtime) + " Minutes added." + " New Time Left: ," + String(cutTime - millis()/60000));
-    }
+      xBee.send(String(addtime) + " minutes added." + " New time left: ," + String(cutTime - millis()/60000));
+      if(SDactive) logData(String(addtime) + " minutes added." + " New time left: ," + String(cutTime - millis()/60000));}
     else if (command.startsWith("-")) {
       command.remove(0,1);
       float subtime = command.toFloat();
       cutTime = cutTime - subtime;
-      xBee.send(String(subtime) + " Minutes removed." + " New Time Left: ," + String(cutTime - millis()/60000));
-      if(SDactive) logData(String(subtime) + " Minutes removed." + " New Time Left: ," + String(cutTime - millis()/60000));
-    }
+      xBee.send(String(subtime) + " minutes removed." + " New time left: ," + String(cutTime - millis()/60000));
+      if(SDactive) logData(String(subtime) + " minutes removed." + " New time left: ," + String(cutTime - millis()/60000));}
+    else if (command.startsWith("A")) {
+      xBee.send(String(cutAlt - ublox.getAlt_meters()) + " meters left");}
+    else if (command.startsWith("A+")) {
+      command.remove(0,2);
+      float addalt = command.toFloat(); 
+      cutAlt = cutAlt + addalt;
+      xBee.send(String(addalt) + " meters added." + " New distance left: ," + String(cutAlt - ublox.getAlt_meters()));
+      if(SDactive) logData(String(addalt) + " meters added." + " New distance left: ," + String(cutAlt - ublox.getAlt_meters()));}
+    else if (command.startsWith("A-")) {
+      command.remove(0,2);
+      float subalt = command.toFloat(); 
+      cutAlt = cutAlt - subalt;
+      xBee.send(String(subalt) + " meters removed." + " New distance left: ," + String(cutAlt - ublox.getAlt_meters()));
+      if(SDactive) logData(String(subalt) + " meters removed." + " New distance left: ," + String(cutAlt - ublox.getAlt_meters()));}
     else if (command.startsWith("C")) {
       if (released == true) {
         xBee.send("PPOD already released");}
@@ -153,14 +164,11 @@ void updateXbee(){
         smart.release();
         attempt = true;
         xBee.send("PPOD attempted release");
-        if(SDactive) logData("PPOD attempted release via command");}
-    }
-    else if (command.startsWith("A")) {
-      if (released == false) {
-        xBee.send(data);}
-      else if (released == true) {
-        xBee.send("Released");}
-    }
+        if(SDactive) logData("PPOD attempted release via command");}}
+    else if (command.startsWith("D")) {
+       xBee.send(data);}
+    else if (command.startsWith("M")) {
+      xBee.send("Polo");}
   }
 }
 

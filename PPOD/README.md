@@ -2,6 +2,7 @@
 Flight computer for the PPOD
 
 
+
 Status indicator LEDs:
 
 Blue: GPS, flashes every 10 seconds if fix, every second if not
@@ -9,6 +10,7 @@ Blue: GPS, flashes every 10 seconds if fix, every second if not
 Red: SMART, flashes every 10 seconds if not released, every second after release
 
 Yellow: SD card, flashes every log cycle if logging, stays on if not logging
+
 
 
 XBee commands:

@@ -28,7 +28,7 @@ bool attempt = false;
 bool released = false;
 String ID = "POD";
 String command;
-float cutTime = 1.0; //Time in minutes, 70,000 feet approx.
+float cutTime = 70.0; //Time in minutes, 70,000 feet approx.
 float cutAlt = 18288; //Alt in meters
 float currentAlt = 0;
 String rawGPS;
@@ -97,7 +97,7 @@ void setup() {
 void loop() {
   ublox.update();
   if (millis()%1000 == 500) {
-    released = !digitalRead(10);
+    released = digitalRead(10);
     updateXbee();
     updateData();
     updateStatus();

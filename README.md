@@ -3,9 +3,11 @@ Flight computer for the PPOD, configured for Teensy 3.5/3.6.
 
 **Layout**
 
-This PPOD can hold 4U worth of CubeSats. The board on which the controls are mounted can be detached by opening the front access panel and pushing up on it from underneath (be sure to separate the SMART, LED, and battery/switch wires first). To reattach the board, line up the arrow in one corner of the board with the corresponding arrow on the corner of the shelf inside the PPOD.
+This PPOD can hold 4U worth of CubeSats. It runs on a Teensy 3.6, with a SMART release mechanism, a Ublox GPS, XBee radio communication via any Comms unit, and additional sensors: a Dallas temperature sensor and a Honeywell pressure sensor.
 
-**Setup**
+The board on which the controls are mounted can be detached by opening the front access panel and pushing up on it from underneath (be sure to separate the SMART, LED, and battery/switch wires first). To reattach the board, line up the arrow in one corner of the board with the corresponding arrow on the corner of the shelf inside the PPOD.
+
+**Release checker setup**
 
 The release checker must be pinned in place each time the SMART pin is reset. Take a very small breadboard wire and bend it around the large loop of cinching string (NOT the loop that goes around the SMART pin). Connect the ends of the wire to digital pins 9 and 10, so the loop of string is held in place. This wire will pull out when the SMART unit releases, confirming the release with the computer.
 
